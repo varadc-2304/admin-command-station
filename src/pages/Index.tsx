@@ -4,20 +4,53 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Shield, Building2, Users, BookOpen, ClipboardList } from "lucide-react";
+import { Shield } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import Dashboard from "@/components/Dashboard";
 
 const Index = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [credentials, setCredentials] = useState({ username: "", password: "" });
+  const [credentials, setCredentials] = useState({ email: "", password: "" });
+  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Simple demo login - in real app would validate against backend
-    if (credentials.username === "superadmin" && credentials.password === "admin123") {
+    setIsLoading(true);
+
+    try {
+      // Check credentials against auth table
+      const { data: user, error } = await supabase
+        .from('auth')
+        .select('*')
+        .eq('email', credentials.email)
+        .eq('password', credentials.password)
+        .eq('role', 'superadmin')
+        .single();
+
+      if (error || !user) {
+        toast({
+          title: "Login Failed",
+          description: "Invalid credentials or insufficient permissions.",
+          variant: "destructive"
+        });
+        return;
+      }
+
       setIsLoggedIn(true);
-    } else {
-      alert("Invalid credentials. Use: superadmin / admin123");
+      toast({
+        title: "Login Successful",
+        description: "Welcome to the Super Admin Dashboard.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "An error occurred during login.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -36,22 +69,22 @@ const Index = () => {
             <div>
               <CardTitle className="text-2xl font-bold text-gray-900">Super Admin Dashboard</CardTitle>
               <CardDescription className="text-gray-600 mt-2">
-                Manage organizations, users, and learning content
+                Sign in to manage organizations and users
               </CardDescription>
             </div>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleLogin} className="space-y-6">
               <div className="space-y-2">
-                <Label htmlFor="username" className="text-sm font-medium text-gray-700">
-                  Username
+                <Label htmlFor="email" className="text-sm font-medium text-gray-700">
+                  Email
                 </Label>
                 <Input
-                  id="username"
-                  type="text"
-                  placeholder="Enter username"
-                  value={credentials.username}
-                  onChange={(e) => setCredentials({ ...credentials, username: e.target.value })}
+                  id="email"
+                  type="email"
+                  placeholder="Enter your email"
+                  value={credentials.email}
+                  onChange={(e) => setCredentials({ ...credentials, email: e.target.value })}
                   className="h-11"
                   required
                 />
@@ -63,43 +96,23 @@ const Index = () => {
                 <Input
                   id="password"
                   type="password"
-                  placeholder="Enter password"
+                  placeholder="Enter your password"
                   value={credentials.password}
                   onChange={(e) => setCredentials({ ...credentials, password: e.target.value })}
                   className="h-11"
                   required
                 />
               </div>
-              <Button type="submit" className="w-full h-11 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 transition-all duration-200">
-                Sign In
+              <Button 
+                type="submit" 
+                className="w-full h-11 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 transition-all duration-200"
+                disabled={isLoading}
+              >
+                {isLoading ? "Signing In..." : "Sign In"}
               </Button>
             </form>
-            <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-              <p className="text-sm text-blue-800 font-medium">Demo Credentials:</p>
-              <p className="text-sm text-blue-700">Username: superadmin</p>
-              <p className="text-sm text-blue-700">Password: admin123</p>
-            </div>
           </CardContent>
         </Card>
-        
-        <div className="mt-8 grid grid-cols-2 gap-4">
-          <div className="bg-white/80 backdrop-blur-sm rounded-lg p-4 text-center">
-            <Building2 className="w-8 h-8 text-blue-600 mx-auto mb-2" />
-            <p className="text-sm font-medium text-gray-700">Organizations</p>
-          </div>
-          <div className="bg-white/80 backdrop-blur-sm rounded-lg p-4 text-center">
-            <Users className="w-8 h-8 text-indigo-600 mx-auto mb-2" />
-            <p className="text-sm font-medium text-gray-700">User Management</p>
-          </div>
-          <div className="bg-white/80 backdrop-blur-sm rounded-lg p-4 text-center">
-            <BookOpen className="w-8 h-8 text-purple-600 mx-auto mb-2" />
-            <p className="text-sm font-medium text-gray-700">Learning Paths</p>
-          </div>
-          <div className="bg-white/80 backdrop-blur-sm rounded-lg p-4 text-center">
-            <ClipboardList className="w-8 h-8 text-green-600 mx-auto mb-2" />
-            <p className="text-sm font-medium text-gray-700">Assessments</p>
-          </div>
-        </div>
       </div>
     </div>
   );

@@ -528,7 +528,6 @@ export type Database = {
           description: string | null
           difficulty: string | null
           id: string
-          sr: string | null
           title: string | null
           updated_at: string | null
         }
@@ -537,7 +536,6 @@ export type Database = {
           description?: string | null
           difficulty?: string | null
           id: string
-          sr?: string | null
           title?: string | null
           updated_at?: string | null
         }
@@ -546,7 +544,6 @@ export type Database = {
           description?: string | null
           difficulty?: string | null
           id?: string
-          sr?: string | null
           title?: string | null
           updated_at?: string | null
         }
@@ -712,6 +709,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      organizations: {
+        Row: {
+          assigned_assessments_code: string[] | null
+          assigned_learning_paths: string[] | null
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_assessments_code?: string[] | null
+          assigned_learning_paths?: string[] | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_assessments_code?: string[] | null
+          assigned_learning_paths?: string[] | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       proctoring_sessions: {
         Row: {
