@@ -64,12 +64,12 @@ const Index = () => {
         <Card className="shadow-2xl border-0">
           <CardHeader className="space-y-4 text-center pb-8">
             <div className="mx-auto w-16 h-16 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full flex items-center justify-center">
-              <Shield className="w-8 h-8 text-white" />
+
             </div>
             <div>
               <CardTitle className="text-2xl font-bold text-gray-900">Super Admin Dashboard</CardTitle>
               <CardDescription className="text-gray-600 mt-2">
-                Sign in to manage organizations and users
+                Ikshvaku Innovations
               </CardDescription>
             </div>
           </CardHeader>
