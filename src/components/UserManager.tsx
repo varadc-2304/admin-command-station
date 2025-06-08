@@ -63,6 +63,7 @@ const UserManager = () => {
 
       const usersWithAssessments = data?.map(user => ({
         ...user,
+        role: user.role as "admin" | "student", // Type assertion to fix the error
         joinDate: new Date(user.created_at).toLocaleDateString(),
         assessments: 0 // This could be calculated from submissions table if needed
       })) || [];
