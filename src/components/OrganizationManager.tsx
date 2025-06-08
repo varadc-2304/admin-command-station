@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, Building2, Users, BookOpen } from "lucide-react";
+import { Plus, Trash2, Building2, Users, BookOpen, Edit } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -42,6 +41,7 @@ const OrganizationManager = () => {
   const [assessments, setAssessments] = useState<Assessment[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [editingOrg, setEditingOrg] = useState<Organization | null>(null);
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -117,18 +117,35 @@ const OrganizationManager = () => {
     e.preventDefault();
     
     try {
-      const { error } = await supabase
-        .from('organizations')
-        .insert([formData]);
+      if (editingOrg) {
+        // Update existing organization
+        const { error } = await supabase
+          .from('organizations')
+          .update(formData)
+          .eq('id', editingOrg.id);
 
-      if (error) throw error;
+        if (error) throw error;
 
-      toast({
-        title: "Organization created",
-        description: "The new organization has been successfully created.",
-      });
+        toast({
+          title: "Organization updated",
+          description: "The organization has been successfully updated.",
+        });
+      } else {
+        // Create new organization
+        const { error } = await supabase
+          .from('organizations')
+          .insert([formData]);
+
+        if (error) throw error;
+
+        toast({
+          title: "Organization created",
+          description: "The new organization has been successfully created.",
+        });
+      }
 
       setIsDialogOpen(false);
+      setEditingOrg(null);
       setFormData({ 
         name: "", 
         description: "", 
@@ -137,10 +154,10 @@ const OrganizationManager = () => {
       });
       fetchOrganizations();
     } catch (error) {
-      console.error('Error creating organization:', error);
+      console.error('Error saving organization:', error);
       toast({
         title: "Error",
-        description: "Failed to create organization.",
+        description: editingOrg ? "Failed to update organization." : "Failed to create organization.",
         variant: "destructive"
       });
     }
@@ -173,11 +190,23 @@ const OrganizationManager = () => {
   };
 
   const handleAddNew = () => {
+    setEditingOrg(null);
     setFormData({ 
       name: "", 
       description: "", 
       assigned_learning_paths: [], 
       assigned_assessments_code: [] 
+    });
+    setIsDialogOpen(true);
+  };
+
+  const handleEdit = (org: Organization) => {
+    setEditingOrg(org);
+    setFormData({
+      name: org.name,
+      description: org.description,
+      assigned_learning_paths: org.assigned_learning_paths || [],
+      assigned_assessments_code: org.assigned_assessments_code || []
     });
     setIsDialogOpen(true);
   };
@@ -224,9 +253,9 @@ const OrganizationManager = () => {
           </DialogTrigger>
           <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Add New Organization</DialogTitle>
+              <DialogTitle>{editingOrg ? 'Edit Organization' : 'Add New Organization'}</DialogTitle>
               <DialogDescription>
-                Create a new organization and assign learning paths and assessments
+                {editingOrg ? 'Update the organization details and assignments' : 'Create a new organization and assign learning paths and assessments'}
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -289,7 +318,7 @@ const OrganizationManager = () => {
                   Cancel
                 </Button>
                 <Button type="submit">
-                  Create Organization
+                  {editingOrg ? 'Update Organization' : 'Create Organization'}
                 </Button>
               </div>
             </form>
@@ -368,14 +397,24 @@ const OrganizationManager = () => {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleDelete(org.id)}
-                      className="text-red-600 hover:text-red-700"
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </Button>
+                    <div className="flex items-center space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleEdit(org)}
+                        className="text-blue-600 hover:text-blue-700"
+                      >
+                        <Edit className="w-3 h-3" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDelete(org.id)}
+                        className="text-red-600 hover:text-red-700"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}

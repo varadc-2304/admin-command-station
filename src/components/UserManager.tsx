@@ -20,7 +20,6 @@ interface User {
   organization: string;
   organization_id: string;
   joinDate: string;
-  assessments: number;
 }
 
 interface Organization {
@@ -46,29 +45,47 @@ const UserManager = () => {
 
   const fetchUsers = async () => {
     try {
-      const { data, error } = await supabase
+      const { data: authData, error: authError } = await supabase
         .from('auth')
         .select(`
           id,
           name,
           email,
           role,
-          organization,
           organization_id,
           created_at
         `)
         .neq('role', 'superadmin');
 
-      if (error) throw error;
+      if (authError) throw authError;
 
-      const usersWithAssessments = data?.map(user => ({
-        ...user,
-        role: user.role as "admin" | "student", // Type assertion to fix the error
-        joinDate: new Date(user.created_at).toLocaleDateString(),
-        assessments: 0 // This could be calculated from submissions table if needed
-      })) || [];
+      // Fetch organization names for users
+      const usersWithOrgs = await Promise.all(
+        (authData || []).map(async (user) => {
+          let organizationName = 'No Organization';
+          
+          if (user.organization_id) {
+            const { data: orgData } = await supabase
+              .from('organizations')
+              .select('name')
+              .eq('id', user.organization_id)
+              .single();
+            
+            if (orgData) {
+              organizationName = orgData.name;
+            }
+          }
 
-      setUsers(usersWithAssessments);
+          return {
+            ...user,
+            role: user.role as "admin" | "student",
+            organization: organizationName,
+            joinDate: new Date(user.created_at).toLocaleDateString(),
+          };
+        })
+      );
+
+      setUsers(usersWithOrgs);
     } catch (error) {
       console.error('Error fetching users:', error);
       toast({
@@ -351,7 +368,6 @@ const UserManager = () => {
                 <TableHead>User</TableHead>
                 <TableHead>Role</TableHead>
                 <TableHead>Organization</TableHead>
-                <TableHead>Assessments</TableHead>
                 <TableHead>Join Date</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
@@ -382,7 +398,6 @@ const UserManager = () => {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-gray-600">{user.organization}</TableCell>
-                  <TableCell>{user.assessments}</TableCell>
                   <TableCell className="text-gray-600">{user.joinDate}</TableCell>
                   <TableCell>
                     <Button
@@ -398,7 +413,7 @@ const UserManager = () => {
               ))}
               {filteredUsers.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center text-gray-500 py-8">
+                  <TableCell colSpan={5} className="text-center text-gray-500 py-8">
                     No users found.
                   </TableCell>
                 </TableRow>

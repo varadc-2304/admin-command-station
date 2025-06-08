@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -8,6 +8,7 @@ import OrganizationManager from "./OrganizationManager";
 import UserManager from "./UserManager";
 import LearningPathManager from "./LearningPathManager";
 import AssessmentManager from "./AssessmentManager";
+import { supabase } from "@/integrations/supabase/client";
 
 interface DashboardProps {
   onLogout: () => void;
@@ -15,12 +16,56 @@ interface DashboardProps {
 
 const Dashboard = ({ onLogout }: DashboardProps) => {
   const [activeTab, setActiveTab] = useState("overview");
+  const [stats, setStats] = useState({
+    totalOrganizations: 0,
+    activeUsers: 0,
+    learningPaths: 0,
+    assessments: 0
+  });
 
-  const stats = [
-    { title: "Total Organizations", value: "0", icon: Building2, color: "text-blue-600" },
-    { title: "Active Users", value: "0", icon: Users, color: "text-indigo-600" },
-    { title: "Learning Paths", value: "0", icon: BookOpen, color: "text-purple-600" },
-    { title: "Assessments", value: "0", icon: ClipboardList, color: "text-green-600" },
+  const fetchStats = async () => {
+    try {
+      // Fetch organizations count
+      const { count: orgsCount } = await supabase
+        .from('organizations')
+        .select('*', { count: 'exact', head: true });
+
+      // Fetch users count (excluding superadmin)
+      const { count: usersCount } = await supabase
+        .from('auth')
+        .select('*', { count: 'exact', head: true })
+        .neq('role', 'superadmin');
+
+      // Fetch learning paths count
+      const { count: pathsCount } = await supabase
+        .from('learning_paths')
+        .select('*', { count: 'exact', head: true });
+
+      // Fetch assessments count
+      const { count: assessmentsCount } = await supabase
+        .from('assessments')
+        .select('*', { count: 'exact', head: true });
+
+      setStats({
+        totalOrganizations: orgsCount || 0,
+        activeUsers: usersCount || 0,
+        learningPaths: pathsCount || 0,
+        assessments: assessmentsCount || 0
+      });
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchStats();
+  }, []);
+
+  const statsData = [
+    { title: "Total Organizations", value: stats.totalOrganizations.toString(), icon: Building2, color: "text-blue-600" },
+    { title: "Active Users", value: stats.activeUsers.toString(), icon: Users, color: "text-indigo-600" },
+    { title: "Learning Paths", value: stats.learningPaths.toString(), icon: BookOpen, color: "text-purple-600" },
+    { title: "Assessments", value: stats.assessments.toString(), icon: ClipboardList, color: "text-green-600" },
   ];
 
   return (
@@ -74,7 +119,7 @@ const Dashboard = ({ onLogout }: DashboardProps) => {
 
           <TabsContent value="overview" className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {stats.map((stat, index) => (
+              {statsData.map((stat, index) => (
                 <Card key={index} className="hover:shadow-lg transition-shadow duration-200">
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium text-gray-600">
@@ -90,16 +135,6 @@ const Dashboard = ({ onLogout }: DashboardProps) => {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Recent Activity</CardTitle>
-                  <CardDescription>Latest actions in the system</CardDescription>
-                </CardHeader>
-                <CardContent className="text-center text-gray-500 py-8">
-                  No recent activity found.
-                </CardContent>
-              </Card>
-
               <Card>
                 <CardHeader>
                   <CardTitle>Quick Actions</CardTitle>
@@ -138,6 +173,31 @@ const Dashboard = ({ onLogout }: DashboardProps) => {
                     <ClipboardList className="w-4 h-4 mr-2" />
                     View Assessments
                   </Button>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>System Overview</CardTitle>
+                  <CardDescription>Current system status</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Organizations</span>
+                    <span className="font-semibold">{stats.totalOrganizations}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Total Users</span>
+                    <span className="font-semibold">{stats.activeUsers}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Learning Content</span>
+                    <span className="font-semibold">{stats.learningPaths} paths</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Assessments</span>
+                    <span className="font-semibold">{stats.assessments} total</span>
+                  </div>
                 </CardContent>
               </Card>
             </div>

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -103,7 +102,7 @@ const AssessmentManager = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-1 gap-6 mb-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Assessments</CardTitle>
@@ -111,39 +110,6 @@ const AssessmentManager = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{assessments.length}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active</CardTitle>
-            <ClipboardList className="w-4 h-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {assessments.filter(assessment => assessment.status?.toLowerCase() === 'active').length}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Scheduled</CardTitle>
-            <ClipboardList className="w-4 h-4 text-blue-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {assessments.filter(assessment => assessment.status?.toLowerCase() === 'scheduled').length}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Practice Mode</CardTitle>
-            <ClipboardList className="w-4 h-4 text-purple-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {assessments.filter(assessment => assessment.is_practice).length}
-            </div>
           </CardContent>
         </Card>
       </div>
@@ -161,7 +127,6 @@ const AssessmentManager = () => {
                 <TableHead>Code</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Duration</TableHead>
-                <TableHead>Type</TableHead>
                 <TableHead>Start Time</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
@@ -176,6 +141,12 @@ const AssessmentManager = () => {
                       </div>
                       <div>
                         <div className="font-medium">{assessment.name}</div>
+                        {assessment.is_practice && (
+                          <Badge variant="secondary" className="mt-1">Practice</Badge>
+                        )}
+                        {assessment.is_ai_proctored && (
+                          <Badge variant="secondary" className="mt-1 ml-1">AI Proctored</Badge>
+                        )}
                       </div>
                     </div>
                   </TableCell>
@@ -189,16 +160,6 @@ const AssessmentManager = () => {
                   </TableCell>
                   <TableCell>
                     {assessment.duration_minutes} min
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex flex-col gap-1">
-                      {assessment.is_practice && (
-                        <Badge variant="secondary" className="w-fit">Practice</Badge>
-                      )}
-                      {assessment.is_ai_proctored && (
-                        <Badge variant="secondary" className="w-fit">AI Proctored</Badge>
-                      )}
-                    </div>
                   </TableCell>
                   <TableCell className="text-gray-500">
                     {new Date(assessment.start_time).toLocaleDateString()}
@@ -217,7 +178,7 @@ const AssessmentManager = () => {
               ))}
               {assessments.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center text-gray-500 py-8">
+                  <TableCell colSpan={6} className="text-center text-gray-500 py-8">
                     No assessments found.
                   </TableCell>
                 </TableRow>
