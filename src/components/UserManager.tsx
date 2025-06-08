@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,145 +8,185 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Edit, Trash2, Users, Shield, GraduationCap, Filter } from "lucide-react";
+import { Plus, Trash2, Users, Shield, GraduationCap, Filter } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface User {
-  id: number;
+  id: string;
   name: string;
   email: string;
   role: "admin" | "student";
   organization: string;
-  status: "active" | "inactive";
+  organization_id: string;
   joinDate: string;
-  learningPaths: number;
+  assessments: number;
+}
+
+interface Organization {
+  id: string;
+  name: string;
 }
 
 const UserManager = () => {
   const { toast } = useToast();
-  const [users, setUsers] = useState<User[]>([
-    {
-      id: 1,
-      name: "John Doe",
-      email: "john.doe@techcorp.com",
-      role: "admin",
-      organization: "TechCorp Inc.",
-      status: "active",
-      joinDate: "2024-01-15",
-      learningPaths: 3
-    },
-    {
-      id: 2,
-      name: "Jane Smith",
-      email: "jane.smith@techcorp.com",
-      role: "student",
-      organization: "TechCorp Inc.",
-      status: "active",
-      joinDate: "2024-02-01",
-      learningPaths: 2
-    },
-    {
-      id: 3,
-      name: "Mike Johnson",
-      email: "mike.j@edusoft.com",
-      role: "admin",
-      organization: "EduSoft Solutions",
-      status: "active",
-      joinDate: "2024-01-20",
-      learningPaths: 4
-    },
-    {
-      id: 4,
-      name: "Sarah Wilson",
-      email: "sarah.w@datascience.com",
-      role: "student",
-      organization: "DataScience Pro",
-      status: "inactive",
-      joinDate: "2024-03-01",
-      learningPaths: 1
-    }
-  ]);
-
+  const [users, setUsers] = useState<User[]>([]);
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState<User | null>(null);
   const [filterOrg, setFilterOrg] = useState<string>("all");
   const [filterRole, setFilterRole] = useState<string>("all");
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     role: "student" as "admin" | "student",
-    organization: "",
-    status: "active" as "active" | "inactive"
+    organization_id: "",
+    password: ""
   });
 
-  const organizations = ["TechCorp Inc.", "EduSoft Solutions", "DataScience Pro"];
+  const fetchUsers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('auth')
+        .select(`
+          id,
+          name,
+          email,
+          role,
+          organization,
+          organization_id,
+          created_at
+        `)
+        .neq('role', 'superadmin');
 
-  const filteredUsers = users.filter(user => {
-    const orgMatch = filterOrg === "all" || user.organization === filterOrg;
-    const roleMatch = filterRole === "all" || user.role === filterRole;
-    return orgMatch && roleMatch;
-  });
+      if (error) throw error;
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (editingUser) {
-      setUsers(users =>
-        users.map(user =>
-          user.id === editingUser.id
-            ? { ...user, ...formData }
-            : user
-        )
-      );
+      const usersWithAssessments = data?.map(user => ({
+        ...user,
+        joinDate: new Date(user.created_at).toLocaleDateString(),
+        assessments: 0 // This could be calculated from submissions table if needed
+      })) || [];
+
+      setUsers(usersWithAssessments);
+    } catch (error) {
+      console.error('Error fetching users:', error);
       toast({
-        title: "User updated",
-        description: "The user has been successfully updated.",
-      });
-    } else {
-      const newUser: User = {
-        id: Date.now(),
-        ...formData,
-        joinDate: new Date().toISOString().split('T')[0],
-        learningPaths: 0
-      };
-      setUsers(users => [...users, newUser]);
-      toast({
-        title: "User created",
-        description: "The new user has been successfully created.",
-      });
-    }
-    setIsDialogOpen(false);
-    setEditingUser(null);
-    setFormData({ name: "", email: "", role: "student", organization: "", status: "active" });
-  };
-
-  const handleEdit = (user: User) => {
-    setEditingUser(user);
-    setFormData({
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      organization: user.organization,
-      status: user.status
-    });
-    setIsDialogOpen(true);
-  };
-
-  const handleDelete = (id: number) => {
-    if (window.confirm("Are you sure you want to delete this user?")) {
-      setUsers(users => users.filter(user => user.id !== id));
-      toast({
-        title: "User deleted",
-        description: "The user has been successfully deleted.",
+        title: "Error",
+        description: "Failed to fetch users.",
         variant: "destructive"
       });
     }
   };
 
+  const fetchOrganizations = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('organizations')
+        .select('id, name')
+        .order('name');
+
+      if (error) throw error;
+      setOrganizations(data || []);
+    } catch (error) {
+      console.error('Error fetching organizations:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch organizations.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  useEffect(() => {
+    const loadData = async () => {
+      setIsLoading(true);
+      await Promise.all([fetchUsers(), fetchOrganizations()]);
+      setIsLoading(false);
+    };
+    loadData();
+  }, []);
+
+  const filteredUsers = users.filter(user => {
+    const orgMatch = filterOrg === "all" || user.organization_id === filterOrg;
+    const roleMatch = filterRole === "all" || user.role === filterRole;
+    return orgMatch && roleMatch;
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    try {
+      const selectedOrg = organizations.find(org => org.id === formData.organization_id);
+      
+      const { error } = await supabase
+        .from('auth')
+        .insert([{
+          name: formData.name,
+          email: formData.email,
+          role: formData.role,
+          organization_id: formData.organization_id,
+          organization: selectedOrg?.name || '',
+          password: formData.password
+        }]);
+
+      if (error) throw error;
+
+      toast({
+        title: "User created",
+        description: "The new user has been successfully created.",
+      });
+
+      setIsDialogOpen(false);
+      setFormData({ name: "", email: "", role: "student", organization_id: "", password: "" });
+      fetchUsers();
+    } catch (error) {
+      console.error('Error creating user:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create user.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (window.confirm("Are you sure you want to delete this user?")) {
+      try {
+        const { error } = await supabase
+          .from('auth')
+          .delete()
+          .eq('id', id);
+
+        if (error) throw error;
+
+        toast({
+          title: "User deleted",
+          description: "The user has been successfully deleted.",
+        });
+        fetchUsers();
+      } catch (error) {
+        console.error('Error deleting user:', error);
+        toast({
+          title: "Error",
+          description: "Failed to delete user.",
+          variant: "destructive"
+        });
+      }
+    }
+  };
+
   const handleAddNew = () => {
-    setEditingUser(null);
-    setFormData({ name: "", email: "", role: "student", organization: "", status: "active" });
+    setFormData({ name: "", email: "", role: "student", organization_id: "", password: "" });
     setIsDialogOpen(true);
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-lg">Loading users...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -164,12 +204,8 @@ const UserManager = () => {
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>
-                {editingUser ? "Edit User" : "Add New User"}
-              </DialogTitle>
-              <DialogDescription>
-                {editingUser ? "Update the user details" : "Create a new user account"}
-              </DialogDescription>
+              <DialogTitle>Add New User</DialogTitle>
+              <DialogDescription>Create a new user account</DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
@@ -194,6 +230,17 @@ const UserManager = () => {
                 />
               </div>
               <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  placeholder="Enter password"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
                 <Label htmlFor="role">Role</Label>
                 <Select value={formData.role} onValueChange={(value: "admin" | "student") => setFormData({ ...formData, role: value })}>
                   <SelectTrigger>
@@ -207,26 +254,14 @@ const UserManager = () => {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="organization">Organization</Label>
-                <Select value={formData.organization} onValueChange={(value) => setFormData({ ...formData, organization: value })}>
+                <Select value={formData.organization_id} onValueChange={(value) => setFormData({ ...formData, organization_id: value })}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select organization" />
                   </SelectTrigger>
                   <SelectContent>
                     {organizations.map((org) => (
-                      <SelectItem key={org} value={org}>{org}</SelectItem>
+                      <SelectItem key={org.id} value={org.id}>{org.name}</SelectItem>
                     ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="status">Status</Label>
-                <Select value={formData.status} onValueChange={(value: "active" | "inactive") => setFormData({ ...formData, status: value })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="inactive">Inactive</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -234,16 +269,14 @@ const UserManager = () => {
                 <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                   Cancel
                 </Button>
-                <Button type="submit">
-                  {editingUser ? "Update" : "Create"}
-                </Button>
+                <Button type="submit">Create</Button>
               </div>
             </form>
           </DialogContent>
         </Dialog>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Users</CardTitle>
@@ -275,17 +308,6 @@ const UserManager = () => {
             </div>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Users</CardTitle>
-            <Users className="w-4 h-4 text-purple-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {users.filter(user => user.status === "active").length}
-            </div>
-          </CardContent>
-        </Card>
       </div>
 
       <Card>
@@ -304,7 +326,7 @@ const UserManager = () => {
                 <SelectContent>
                   <SelectItem value="all">All Organizations</SelectItem>
                   {organizations.map((org) => (
-                    <SelectItem key={org} value={org}>{org}</SelectItem>
+                    <SelectItem key={org.id} value={org.id}>{org.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -328,9 +350,8 @@ const UserManager = () => {
                 <TableHead>User</TableHead>
                 <TableHead>Role</TableHead>
                 <TableHead>Organization</TableHead>
-                <TableHead>Learning Paths</TableHead>
+                <TableHead>Assessments</TableHead>
                 <TableHead>Join Date</TableHead>
-                <TableHead>Status</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -360,34 +381,27 @@ const UserManager = () => {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-gray-600">{user.organization}</TableCell>
-                  <TableCell>{user.learningPaths}</TableCell>
+                  <TableCell>{user.assessments}</TableCell>
                   <TableCell className="text-gray-600">{user.joinDate}</TableCell>
                   <TableCell>
-                    <Badge variant={user.status === "active" ? "default" : "secondary"}>
-                      {user.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center space-x-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleEdit(user)}
-                      >
-                        <Edit className="w-3 h-3" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDelete(user.id)}
-                        className="text-red-600 hover:text-red-700"
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </Button>
-                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleDelete(user.id)}
+                      className="text-red-600 hover:text-red-700"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))}
+              {filteredUsers.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center text-gray-500 py-8">
+                    No users found.
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </CardContent>

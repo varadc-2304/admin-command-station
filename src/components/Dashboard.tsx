@@ -17,10 +17,10 @@ const Dashboard = ({ onLogout }: DashboardProps) => {
   const [activeTab, setActiveTab] = useState("overview");
 
   const stats = [
-    { title: "Total Organizations", value: "24", icon: Building2, color: "text-blue-600" },
-    { title: "Active Users", value: "1,248", icon: Users, color: "text-indigo-600" },
-    { title: "Learning Paths", value: "36", icon: BookOpen, color: "text-purple-600" },
-    { title: "Assessments", value: "89", icon: ClipboardList, color: "text-green-600" },
+    { title: "Total Organizations", value: "0", icon: Building2, color: "text-blue-600" },
+    { title: "Active Users", value: "0", icon: Users, color: "text-indigo-600" },
+    { title: "Learning Paths", value: "0", icon: BookOpen, color: "text-purple-600" },
+    { title: "Assessments", value: "0", icon: ClipboardList, color: "text-green-600" },
   ];
 
   return (
@@ -95,28 +95,8 @@ const Dashboard = ({ onLogout }: DashboardProps) => {
                   <CardTitle>Recent Activity</CardTitle>
                   <CardDescription>Latest actions in the system</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center space-x-3 p-3 bg-blue-50 rounded-lg">
-                    <Building2 className="w-5 h-5 text-blue-600" />
-                    <div>
-                      <p className="text-sm font-medium">New organization added</p>
-                      <p className="text-xs text-gray-500">TechCorp Inc. - 2 hours ago</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-3 p-3 bg-green-50 rounded-lg">
-                    <Users className="w-5 h-5 text-green-600" />
-                    <div>
-                      <p className="text-sm font-medium">User enrolled</p>
-                      <p className="text-xs text-gray-500">John Doe in React Fundamentals - 4 hours ago</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-3 p-3 bg-purple-50 rounded-lg">
-                    <BookOpen className="w-5 h-5 text-purple-600" />
-                    <div>
-                      <p className="text-sm font-medium">Learning path updated</p>
-                      <p className="text-xs text-gray-500">Advanced JavaScript - 6 hours ago</p>
-                    </div>
-                  </div>
+                <CardContent className="text-center text-gray-500 py-8">
+                  No recent activity found.
                 </CardContent>
               </Card>
 
@@ -148,7 +128,7 @@ const Dashboard = ({ onLogout }: DashboardProps) => {
                     onClick={() => setActiveTab("learning-paths")}
                   >
                     <BookOpen className="w-4 h-4 mr-2" />
-                    Create Learning Path
+                    View Learning Paths
                   </Button>
                   <Button 
                     className="w-full justify-start" 
@@ -156,7 +136,7 @@ const Dashboard = ({ onLogout }: DashboardProps) => {
                     onClick={() => setActiveTab("assessments")}
                   >
                     <ClipboardList className="w-4 h-4 mr-2" />
-                    New Assessment
+                    View Assessments
                   </Button>
                 </CardContent>
               </Card>

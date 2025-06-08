@@ -143,6 +143,7 @@ export type Database = {
       }
       auth: {
         Row: {
+          assigned_assessments: string[] | null
           assigned_learning_paths: string[] | null
           batch: string | null
           course: string | null
@@ -154,6 +155,7 @@ export type Database = {
           id: string
           name: string | null
           organization: string | null
+          organization_id: string | null
           password: string
           prn: string | null
           role: string
@@ -162,6 +164,7 @@ export type Database = {
           year: string | null
         }
         Insert: {
+          assigned_assessments?: string[] | null
           assigned_learning_paths?: string[] | null
           batch?: string | null
           course?: string | null
@@ -173,6 +176,7 @@ export type Database = {
           id?: string
           name?: string | null
           organization?: string | null
+          organization_id?: string | null
           password: string
           prn?: string | null
           role?: string
@@ -181,6 +185,7 @@ export type Database = {
           year?: string | null
         }
         Update: {
+          assigned_assessments?: string[] | null
           assigned_learning_paths?: string[] | null
           batch?: string | null
           course?: string | null
@@ -192,6 +197,7 @@ export type Database = {
           id?: string
           name?: string | null
           organization?: string | null
+          organization_id?: string | null
           password?: string
           prn?: string | null
           role?: string
@@ -199,7 +205,15 @@ export type Database = {
           username?: string | null
           year?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "auth_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       auto_login_tokens: {
         Row: {
