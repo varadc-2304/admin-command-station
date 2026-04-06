@@ -8,7 +8,7 @@ import { Shield } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import Dashboard from "@/components/Dashboard";
-
+// This is a comment
 const Index = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [credentials, setCredentials] = useState({ email: "", password: "" });
